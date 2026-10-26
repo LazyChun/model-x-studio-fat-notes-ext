@@ -1,0 +1,28 @@
+{
+  "id": "a91c6e24-5f70-4b38-8d12-6c4e0a9b3d57",
+  "name": "Model X 工作室",
+  "code": "Model-X-Studio",
+  "displayName": "Model X 工作室",
+  "version": "0.1.0",
+  "description": "交互式三维 Tesla Model X 工作室（Model X Studio）",
+  "icon": "[icon]CarOutlined",
+  "engines": {
+    "fat-notes": ">=1.0.0"
+  },
+  "entry": "remoteEntry.js",
+  "main": "dist/remoteEntry.js",
+  "mfName": "plugin_a91c6e24_5f70_4b38_8d12_6c4e0a9b3d57",
+  "container": "plugin_a91c6e24_5f70_4b38_8d12_6c4e0a9b3d57",
+  "exposed": "./plugin",
+  "exposeKey": "./plugin",
+  "activationEvents": ["onStartup"],
+  "contributions": {
+    "activityBar": true,
+    "primarySidebar": false,
+    "panel": false,
+    "footer": false,
+    "routes": false,
+    "widgetTypes": true
+  },
+  "permissions": []
+}

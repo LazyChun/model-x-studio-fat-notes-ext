@@ -1,3 +1,4 @@
+import {getLocale, pieceExplain, t} from './i18n';
 export type PartId = 'body'|'glass'|'doors'|'cabin'|'battery'|'drive'|'suspension'|'wheels';
 const manual = 'https://www.tesla.com/ownersmanual/modelx/en_us/';
 export const parts: {id:PartId;name:string;category:string;tag:string;description:string;principle:string;specs:[string,string][];source:string}[] = [
@@ -13,6 +14,7 @@ export const parts: {id:PartId;name:string;category:string;tag:string;descriptio
 
 export function describePiece(label:string):string {
  const name=label.split(' · ')[0];
+ if(getLocale()==='zh_CN')return pieceExplain(name)||t('piece.explain.fallback');
  const explanations:Record<string,string>={
   'Hood':'The hood closes the front luggage compartment. Its outer surface continues the body’s aerodynamic shape, while hinges and a latch allow access to the storage space.',
   'Front bumper':'The front bumper cover forms the nose of the vehicle and surrounds its lower openings. The visible cover is separate from the impact structure behind it.',

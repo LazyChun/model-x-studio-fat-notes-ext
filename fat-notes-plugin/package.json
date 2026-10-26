@@ -1,0 +1,26 @@
+{
+  "name": "model-x-studio-fat-notes-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FatNotes bespoke plugin shell for Model X Studio. Upstream app code stays outside this folder.",
+  "scripts": {
+    "build:shell": "webpack --mode production",
+    "build:studio": "node ../node_modules/vite/bin/vite.js build --config vite.config.ts",
+    "build": "npm run build:shell && npm run build:studio",
+    "dev": "webpack --mode development --watch",
+    "dev:studio": "node ../node_modules/vite/bin/vite.js --config vite.config.ts --host 127.0.0.1 --port 3015"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@module-federation/enhanced": "^0.7.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "5.93.0",
+    "webpack-cli": "^5.1.4"
+  }
+}

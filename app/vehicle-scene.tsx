@@ -8,18 +8,19 @@ import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.j
 import {createExplosionLayout,layoutCenter,overviewDirection} from './explosion-layout';
 import {PointerTap} from './pointer-tap';
 import {parts,type PartId} from './parts';
+import {partField, pieceLabel, subscribeLocale, t, useStudioI18n} from './i18n';
 export type SceneHandle={zoom:(factor:number)=>void;reset:()=>void};
 type Props={focusedMesh:string;onInspect:(id:string)=>void;selected:PartId;explode:number;labels:boolean;autoRotate:boolean;isolated:boolean;onSelect:(id:PartId)=>void};
 const offsets:Record<PartId,[number,number,number]>={body:[0,.6,0],glass:[0,2,0],doors:[0,1.1,0],cabin:[0,.7,0],battery:[0,-.85,0],drive:[0,-.18,0],suspension:[0,.08,0],wheels:[0,0,0]};
 const anchors:Record<PartId,[number,number,number]>={body:[-1.9,1.02,.2],glass:[.15,1.94,0],doors:[.25,1.44,1.05],cabin:[.05,1.05,-.4],battery:[.1,.24,1.02],drive:[-1.54,.57,.2],suspension:[1.57,.83,-.83],wheels:[1.53,.46,1.1]};
 const VehicleScene=forwardRef<SceneHandle,Props>(function VehicleScene(props,ref){
- const host=useRef<HTMLDivElement>(null);const latest=useRef(props);latest.current=props;
+ const host=useRef<HTMLDivElement>(null);const latest=useRef(props);latest.current=props;const {t:tr}=useStudioI18n();
  const engine=useRef<{camera:THREE.PerspectiveCamera;controls:OrbitControls;reset:()=>void;interrupt:()=>void}|null>(null);const [error,setError]=useState<string|null>(null);const [ready,setReady]=useState(false);
  useImperativeHandle(ref,()=>({zoom(f){const e=engine.current;if(e){e.interrupt();e.camera.position.sub(e.controls.target).multiplyScalar(f).add(e.controls.target)}},reset(){const e=engine.current;if(e){e.reset()}}}),[]);
  useEffect(()=>{
   setReady(false);setError(null);
   const el=host.current!; let renderer:THREE.WebGLRenderer;
-  try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'})}catch{setError('Your browser could not start the 3D view.');return}
+  try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'})}catch{setError('error.webgl');return}
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,window.matchMedia('(pointer: coarse)').matches?1.25:1.5));renderer.setClearColor(0x000000,0);renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.95;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;el.appendChild(renderer.domElement);
   const scene=new THREE.Scene();scene.background=new THREE.Color('#050607');scene.fog=new THREE.Fog('#050607',16,55);const camera=new THREE.PerspectiveCamera(37,1,.05,500);camera.position.set(-5.7,2.9,6.3);
   const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.8,0);controls.enableDamping=true;controls.dampingFactor=.065;controls.minDistance=5;controls.maxDistance=180;controls.maxPolarAngle=Math.PI*.49;controls.minPolarAngle=.18;controls.enablePan=true;controls.autoRotateSpeed=.65;engine.current={camera,controls,reset:()=>{fitView(true);invalidated=true},interrupt:()=>{framingTime=0}};
@@ -77,7 +78,8 @@ const VehicleScene=forwardRef<SceneHandle,Props>(function VehicleScene(props,ref
    });
    const positions=new Float32Array(pieces.length*3);markerGeometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
    scene.remove(model);readyRef.current=true;setReady(true);fitView(true);invalidated=true;renderer.shadowMap.needsUpdate=true;
-  },undefined,()=>{if(!cancelled)setError('The detailed car could not load. Reload to try again.')});
+   refreshCopy();
+  },undefined,()=>{if(!cancelled)setError('error.load');});
   const markerGeometry=new THREE.BufferGeometry();
   const markerMaterial=new THREE.PointsMaterial({color:0xf6bc99,size:4,sizeAttenuation:false,depthWrite:false,depthTest:false,transparent:true,opacity:.75});
   const markers=new THREE.Points(markerGeometry,markerMaterial);markers.visible=false;markers.frustumCulled=false;markers.renderOrder=10;scene.add(markers);
@@ -89,7 +91,13 @@ const VehicleScene=forwardRef<SceneHandle,Props>(function VehicleScene(props,ref
   for(const radius of [3.36,3.51]){const ring=new THREE.Mesh(new THREE.TorusGeometry(radius,.007,5,128),rimMaterial);ring.rotation.x=-Math.PI/2;ring.position.y=-.05;stage.add(ring)}
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:0x343d49,roughness:.85,metalness:.12}));ground.rotation.x=-Math.PI/2;ground.position.y=-.19;ground.receiveShadow=true;scene.add(ground);
   const grid=new THREE.GridHelper(100,100,0x657182,0x566272);grid.position.y=-.185;(grid.material as THREE.Material).transparent=true;(grid.material as THREE.Material).opacity=.13;scene.add(grid);
-  const labelNodes=parts.map((p,i)=>{const b=document.createElement('button');b.className='scene-label';b.setAttribute('aria-label','Inspect '+p.name);b.innerHTML='<span>'+String(i+1).padStart(2,'0')+'</span><strong>'+p.name+'</strong>';b.addEventListener('click',()=>latest.current.onSelect(p.id));el.appendChild(b);return {b,id:p.id}});
+  const labelNodes=parts.map((p,i)=>{const b=document.createElement('button');b.className='scene-label';b.innerHTML='<span>'+String(i+1).padStart(2,'0')+'</span><strong></strong>';b.addEventListener('click',()=>latest.current.onSelect(p.id));el.appendChild(b);return {b,id:p.id}});
+  const refreshCopy=()=>{
+   labelNodes.forEach(({b,id})=>{const name=partField(id,'name',parts.find(p=>p.id===id)!.name);const strong=b.querySelector('strong');if(strong)strong.textContent=name;b.setAttribute('aria-label',t('scene.inspectPart',{name}));});
+   pieceLabels.forEach(({b},i)=>{const raw=String(pieces[i]?.node.userData.label||'');const name=pieceLabel(raw)||t('scene.modeledPiece');b.title=name;b.setAttribute('aria-label',t('scene.inspectPiece',{n:i+1,name}));});
+  };
+  refreshCopy();
+  const unsubLocale=subscribeLocale(refreshCopy);
   let viewWidth=1,viewHeight=1;
   const resize=()=>{const w=el.clientWidth,h=el.clientHeight;viewWidth=w;viewHeight=h;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();if(readyRef.current){invalidated=true;framingTime=.8}};const observer=new ResizeObserver(resize);observer.observe(el);resize();
   const taps=new PointerTap();const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
@@ -99,7 +107,7 @@ const VehicleScene=forwardRef<SceneHandle,Props>(function VehicleScene(props,ref
   const onUp=(e:PointerEvent)=>{if(!taps.up(e.pointerId,e.clientX,e.clientY))return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);if(markers.visible){let nearest=-1,nearestDistance=e.pointerType==='touch'?324:64;pieces.forEach((piece,i)=>{vector.copy(piece.center).add(piece.node.position).sub(piece.home).add(groups[piece.part].position).project(camera);const dx=(vector.x-pointer.x)*viewWidth/2,dy=(vector.y-pointer.y)*viewHeight/2,d=dx*dx+dy*dy;if(vector.z<1&&d<nearestDistance){nearest=i;nearestDistance=d}});if(nearest>=0){latest.current.onSelect(pieces[nearest].part);latest.current.onInspect(pieces[nearest].id);return}}
    const hits=raycaster.intersectObjects(Object.values(groups),true).filter(h=>{let o:THREE.Object3D|null=h.object;while(o){if(!o.visible)return false;o=o.parent}return true});if(hits[0]){latest.current.onSelect(hits[0].object.userData.part);latest.current.onInspect(hits[0].object.userData.component||'')}};
   renderer.domElement.addEventListener('pointerdown',onDown);renderer.domElement.addEventListener('pointermove',onMove);renderer.domElement.addEventListener('pointercancel',onCancel);renderer.domElement.addEventListener('pointerup',onUp);
-  const lost=(e:Event)=>{e.preventDefault();setError('The graphics connection was interrupted. Please reload the view.')};renderer.domElement.addEventListener('webglcontextlost',lost);
+  const lost=(e:Event)=>{e.preventDefault();setError('error.context')};renderer.domElement.addEventListener('webglcontextlost',lost);
   let raf=0;let amount=latest.current.explode/100;const vector=new THREE.Vector3();let last=performance.now();
   let focusKey='';let previousExplosion=latest.current.explode;let framingTime=0;
   let invalidated=true,previousProps:Props|null=null,lastLabels=0,lastShadow=0;
@@ -187,8 +195,8 @@ const VehicleScene=forwardRef<SceneHandle,Props>(function VehicleScene(props,ref
    cameraPosition.copy(camera.position);cameraQuaternion.copy(camera.quaternion);previousProps=p;invalidated=false;
    renderer.render(scene,camera);
   }raf=requestAnimationFrame(frame);
-  return()=>{cancelled=true;cancelAnimationFrame(raf);observer.disconnect();controls.removeEventListener('start',stopFraming);controls.dispose();markerGeometry.dispose();markerMaterial.dispose();engine.current=null;labelNodes.forEach(x=>x.b.remove());pieceLabels.forEach(x=>x.b.remove());renderer.domElement.removeEventListener('pointerdown',onDown);renderer.domElement.removeEventListener('pointermove',onMove);renderer.domElement.removeEventListener('pointercancel',onCancel);renderer.domElement.removeEventListener('pointerup',onUp);renderer.domElement.removeEventListener('webglcontextlost',lost);scene.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>m.dispose())}});env.dispose();pmrem.dispose();room.dispose();renderer.dispose();renderer.domElement.remove();};
+  return()=>{cancelled=true;unsubLocale();cancelAnimationFrame(raf);observer.disconnect();controls.removeEventListener('start',stopFraming);controls.dispose();markerGeometry.dispose();markerMaterial.dispose();engine.current=null;labelNodes.forEach(x=>x.b.remove());pieceLabels.forEach(x=>x.b.remove());renderer.domElement.removeEventListener('pointerdown',onDown);renderer.domElement.removeEventListener('pointermove',onMove);renderer.domElement.removeEventListener('pointercancel',onCancel);renderer.domElement.removeEventListener('pointerup',onUp);renderer.domElement.removeEventListener('webglcontextlost',lost);scene.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>m.dispose())}});env.dispose();pmrem.dispose();room.dispose();renderer.dispose();renderer.domElement.remove();};
  },[]);
- return <><div ref={host} className="canvas-host" aria-label="Rotatable exploded 3D vehicle model"/>{!ready&&!error&&<div className="scene-loading"><span/>Loading the detailed Model X…</div>}{error&&<div className="scene-error"><h3>The 3D view needs a moment.</h3><p>{error}</p><button onClick={()=>location.reload()}>Reload the view</button></div>}</>;
+ return <><div ref={host} className="canvas-host" aria-label={tr('scene.aria')}/>{!ready&&!error&&<div className="scene-loading"><span/>{tr('scene.loading')}</div>}{error&&<div className="scene-error"><h3>{tr('scene.error.title')}</h3><p>{tr(error)}</p><button onClick={()=>location.reload()}>{tr('scene.error.reload')}</button></div>}</>;
 });
 export default VehicleScene;

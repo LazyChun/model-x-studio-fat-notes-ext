@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#050607" />
+    <title>Model X Studio</title>
+    <link rel="icon" href="./favicon.svg" />
+    <script>
+      // Upstream fetches and XMLHttpRequest absolute "/models/..." URLs.
+      // GLTFLoader uses XHR, the parts catalogue uses fetch. Inside FatNotes
+      // the viewer is served from a plugin subdirectory, so rewrite those URLs
+      // onto this page before the app module runs. Upstream sources are unchanged.
+      (function () {
+        var pageBase = new URL(".", location.href);
+        function rewrite(input) {
+          var href = "";
+          if (typeof input === "string") href = input;
+          else if (input instanceof URL) href = input.href;
+          else if (typeof Request !== "undefined" && input instanceof Request) href = input.url;
+          else return input;
+          var parsed;
+          try {
+            parsed = new URL(href, location.href);
+          } catch (e) {
+            return input;
+          }
+          if (parsed.origin !== location.origin) return input;
+          if (parsed.pathname.indexOf("/models/") !== 0 && parsed.pathname !== "/favicon.svg") return input;
+          var next = new URL(parsed.pathname.replace(/^\//, "") + parsed.search + parsed.hash, pageBase);
+          if (typeof input === "string" || input instanceof URL) return next.href;
+          return new Request(next.href, input);
+        }
+        var origFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+          return origFetch(rewrite(input), init);
+        };
+        var origOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function (method, url) {
+          if (typeof url === "string") {
+            var next = rewrite(url);
+            if (next !== url) {
+              return origOpen.call(this, method, next, arguments[2], arguments[3], arguments[4]);
+            }
+          }
+          return origOpen.apply(this, arguments);
+        };
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="../../vercel-app/main.tsx"></script>
+  </body>
+</html>
