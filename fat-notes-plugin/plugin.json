@@ -7,7 +7,7 @@
   "description": "交互式三维 Tesla Model X 工作室（Model X Studio）",
   "icon": "[icon]CarOutlined",
   "engines": {
-    "fat-notes": ">=1.0.0"
+    "fat-notes": ">=0.1.0"
   },
   "entry": "remoteEntry.js",
   "main": "dist/remoteEntry.js",
