@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "a91c6e24-5f70-4b38-8d12-6c4e0a9b3d57",
+  "code": "model-x-studio",
+  "type": "bespokePlugin",
+  "name": "Model X 工作室",
+  "description": "交互式三维 Tesla Model X 工作室（Model X Studio）",
+  "engines": {
+    "fat-notes": ">=0.1.0"
+  },
+  "features": [
+    {
+      "id": "explorer",
+      "name": "Model X 工作室",
+      "description": "浏览 Tesla Model X 三维模型，按部件查看、拆解并隔离单个零件。",
+      "match": "model x|model-x|tesla|车辆|汽车|工作室|studio"
+    }
+  ],
+  "version": "0.1.0",
+  "packageFile": "model-x-studio_v0.1.0.zip"
+}
